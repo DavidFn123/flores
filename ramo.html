@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ramo de Flores Amarillas</title>
+  <style>
+    canvas {
+      background: #87ceeb;
+      display: block;
+      margin: auto;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="florCanvas" width="900" height="800"></canvas>
+
+  <script>
+    const canvas = document.getElementById("florCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const fondo = new Image();
+    fondo.src = "ramo1.png";
+
+    // ---------- CORAZONES ----------
+    const corazones = [];
+    for (let i = 0; i < 20; i++) {
+      corazones.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: 15 + Math.random() * 20,
+        speed: 0.5 + Math.random() * 1,
+        offset: Math.random() * 100
+      });
+    }
+
+    function dibujarCorazon(x, y, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 20, size / 20);
+
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.bezierCurveTo(10, -20, 25, -5, 0, 20);
+      ctx.bezierCurveTo(-25, -5, -10, -20, 0, -10);
+      ctx.closePath();
+
+      ctx.fillStyle = "#ffeb3b"; // amarillo
+      ctx.shadowColor = "rgba(255, 235, 59, 0.5)";
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function animarCorazones(frame) {
+      for (let c of corazones) {
+        c.y -= c.speed;
+        c.x += Math.sin((frame + c.offset) * 0.02) * 0.3; // movimiento suave lateral
+
+        if (c.y < -30) {
+          c.y = canvas.height + 30;
+          c.x = Math.random() * canvas.width;
+        }
+
+        dibujarCorazon(c.x, c.y, c.size);
+      }
+    }
+
+    // ---------- DIBUJAR SOL ----------
+    function dibujarSol(frame) {
+      const radio = 50;
+      const x = 100 + (frame % 1000) * 0.3;
+      const y = 100 + Math.sin(frame * 0.01) * 40;
+
+      const grad = ctx.createRadialGradient(x, y, 10, x, y, radio);
+      grad.addColorStop(0, "#fff9c4");
+      grad.addColorStop(1, "#fbc02d");
+
+      ctx.beginPath();
+      ctx.arc(x, y, radio, 0, 2 * Math.PI);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = "rgba(255, 223, 0, 0.5)";
+      ctx.shadowBlur = 20;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // ---------- DIBUJAR NUBE ----------
+    function dibujarNube(x, y, escala = 1) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(escala, escala);
+
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.arc(30, -10, 25, 0, Math.PI * 2);
+      ctx.arc(60, 0, 20, 0, Math.PI * 2);
+      ctx.arc(30, 15, 25, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // ---------- FLORES ----------
+    function dibujarPetalo(x, y, radio, angulo, variacion, color1, color2) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angulo);
+
+      const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, radio);
+      grad.addColorStop(0, color1);
+      grad.addColorStop(1, color2);
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(radio / 2, -radio / 2 - variacion, radio, -radio / 3, radio, 0);
+      ctx.bezierCurveTo(radio, radio / 3, radio / 2, radio / 2 + variacion, 0, 0);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = "rgba(0,0,0,0.15)";
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function dibujarCentro(x, y) {
+      const grad = ctx.createRadialGradient(x, y, 5, x, y, 30);
+      grad.addColorStop(0, "#ffeb3b");
+      grad.addColorStop(0.5, "#fbc02d");
+      grad.addColorStop(1, "#6d4c41");
+
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, 2 * Math.PI);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = "rgba(0,0,0,0.3)";
+      ctx.shadowBlur = 12;
+      ctx.fill();
+    }
+
+    function dibujarFlor(x, y, factorAnim, escala = 1) {
+      const petalos = 10;
+      const radio = 70 * escala;
+
+      for (let i = 0; i < petalos; i++) {
+        const angulo = (i * 2 * Math.PI) / petalos;
+        const variacion = Math.sin((i + factorAnim) / 2) * 5;
+        dibujarPetalo(x, y, radio, angulo, variacion, "#fff176", "#fbc02d");
+      }
+
+      dibujarCentro(x, y);
+    }
+
+    // ---------- ESCENA ----------
+    function dibujarEscena(frame) {
+      // Fondo cielo
+      const gradCielo = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradCielo.addColorStop(0, "#87ceeb");
+      gradCielo.addColorStop(1, "#e0f7fa");
+      ctx.fillStyle = gradCielo;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Sol
+      dibujarSol(frame);
+
+      // Nubes
+      const velocidad = 0.3;
+      dibujarNube((frame * velocidad) % (canvas.width + 200) - 100, 150, 1.2);
+      dibujarNube((frame * velocidad * 0.8 + 300) % (canvas.width + 250) - 125, 220, 1.5);
+      dibujarNube((frame * velocidad * 1.2 + 600) % (canvas.width + 300) - 150, 100, 1);
+
+      // Corazones flotando 💛
+      animarCorazones(frame);
+
+      // Ramo más grande y abajo
+      const ramoAncho = 500;
+      const ramoAlto = 600;
+      const ramoX = (canvas.width - ramoAncho) / 2;
+      const ramoY = canvas.height - ramoAlto - 80;
+
+      ctx.drawImage(fondo, ramoX, ramoY, ramoAncho, ramoAlto);
+
+      // Coordenadas de flores
+      const centroX = ramoX + ramoAncho / 2;
+      const centroY = ramoY + 200;
+
+      dibujarFlor(centroX, centroY - 120, Math.sin(frame * 0.05) * 2, 1.2);
+      dibujarFlor(centroX - 100, centroY - 80, frame * 0.02, 1.1);
+      dibujarFlor(centroX + 100, centroY - 80, frame * 0.02 + 1, 1.1);
+      dibujarFlor(centroX - 150, centroY - 20, frame * 0.02 + 2, 1);
+      dibujarFlor(centroX + 150, centroY - 20, frame * 0.02 + 3, 1);
+      dibujarFlor(centroX - 70, centroY + 40, frame * 0.02 + 4, 0.9);
+      dibujarFlor(centroX + 70, centroY + 40, frame * 0.02 + 5, 0.9);
+
+      // Nota romántica
+      ctx.font = "28px 'Comic Sans MS', cursive, sans-serif";
+      ctx.fillStyle = "#ff4081";
+      ctx.textAlign = "center";
+      ctx.fillText("que no te vea no significa que no te las de,", canvas.width / 2, canvas.height - 50);
+      ctx.fillText("te amoooo mucho mi princesa hermosa 💖", canvas.width / 2, canvas.height - 20);
+    }
+
+    // ---------- ANIMACIÓN ----------
+    let frame = 0;
+    function animar() {
+      dibujarEscena(frame);
+      frame++;
+      requestAnimationFrame(animar);
+    }
+
+    fondo.onload = () => {
+      animar();
+    };
+  </script>
+</body>
+</html>
